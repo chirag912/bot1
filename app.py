@@ -29,7 +29,8 @@ def get_response(prompt):
             for m in st.session_state.messages
         ] + [{"role": "user", "content": prompt}]
     )
-    return response['choices'][0]['message']['content']
+    # Access the content directly
+    return response.choices[0].message["content"]
 
 # Process and display response if there's input
 if user_input:
