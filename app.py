@@ -1,37 +1,33 @@
+from openai import OpenAI
 import streamlit as st
-import openai
 
-# Function to query GPT API
-def chatbot(prompt):
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt},
-        ]
-    )
-    return response['choices'][0]['message']['content']
+st.title("ChatGPT-like clone")
 
-# Streamlit app starts here
-def main():
-    st.title("GPT Chatbot")
-    st.write("Enter your question below:")
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-    # Input text box for user
-    user_input = st.text_input("You:", "")
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-3.5-turbo"
 
-    # Button to send input to chatbot
-    if st.button("Submit"):
-        if user_input:
-            # Call the chatbot function
-            response = chatbot(user_input)
-            st.write(f"Chatbot: {response}")
-        else:
-            st.write("Please enter a message.")
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# Set up your OpenAI API key
-openai.api_key = st.secrets["openai_api_key"]
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-# Run the main function
-if __name__ == "__main__":
-    main()
+if prompt := st.chat_input("What is up?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant"):
+        stream = client.chat.completions.create(
+            model=st.session_state["openai_model"],
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+            ],
+            stream=True,
+        )
+        response = st.write_stream(stream)
+    st.session_state.messages.append({"role": "assistant", "content": response})
